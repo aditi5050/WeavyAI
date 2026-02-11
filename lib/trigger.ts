@@ -1,52 +1,81 @@
-// import { TriggerClient } from "@trigger.dev/sdk";
+import { TriggerClient } from "@trigger.dev/sdk";
+import { generateText, generateVision } from "@/lib/integrations/gemini";
+import { cropImage, extractFrame } from "@/lib/integrations/transloadit";
 
-export const client = {
-  // Mock client for Phase 1
-  defineJob: () => {},
-  defineTask: () => {}
-};
-
-/*
+// Real Trigger.dev Client Configuration
 export const client = new TriggerClient({
-  id: "weavy-phase-1",
-  apiKey: process.env.TRIGGER_API_KEY || "tr_dev_mock_key",
+  id: "weavy-phase-2",
+  apiKey: process.env.TRIGGER_API_KEY!,
   apiUrl: process.env.TRIGGER_API_URL || "https://api.trigger.dev",
 });
-*/
 
-// Mock Tasks
-// In a real app these would be client.defineJob or defineTask
-// For Phase 1 stubs, we'll simulate the interface
+// Define Real Tasks
+// In a production setup, these should be registered with client.defineJob or defineTask
+// For the context of this execution engine, we are wrapping these as async functions
+// that the engine calls. The engine itself might be running inside a Trigger.dev job
+// or orchestrating these calls.
 
-export const llmTask = async (payload: any) => {
+// If the Engine is the orchestrator, these functions act as the "Job Executors".
+
+export const llmTask = async (payload: { prompt: string; imageUrl?: string; model?: string }) => {
   console.log("Executing LLM Task", payload);
-  await new Promise(r => setTimeout(r, 1000)); // Simulate delay
-  return { text: "This is a mocked LLM response for " + payload.prompt };
+  try {
+    if (payload.imageUrl) {
+      return await generateVision(payload.prompt, payload.imageUrl, payload.model);
+    } else {
+      return await generateText(payload.prompt, payload.model);
+    }
+  } catch (error) {
+    console.error("LLM Task Failed", error);
+    throw error;
+  }
 };
 
-export const cropImageTask = async (payload: any) => {
+export const cropImageTask = async (payload: { imageUrl: string; width?: number; height?: number }) => {
   console.log("Executing Crop Task", payload);
-  await new Promise(r => setTimeout(r, 1500));
-  return { url: "https://via.placeholder.com/500x500?text=Cropped+Image" };
+  try {
+    const url = await cropImage(payload.imageUrl, { width: payload.width, height: payload.height });
+    return { url };
+  } catch (error) {
+    console.error("Crop Task Failed", error);
+    throw error;
+  }
 };
 
-export const extractFrameTask = async (payload: any) => {
+export const extractFrameTask = async (payload: { videoUrl: string; timestamp?: number }) => {
   console.log("Executing Extract Frame Task", payload);
-  await new Promise(r => setTimeout(r, 2000));
-  return { url: "https://via.placeholder.com/1920x1080?text=Extracted+Frame" };
+  try {
+    const url = await extractFrame(payload.videoUrl, payload.timestamp);
+    return { url };
+  } catch (error) {
+    console.error("Extract Frame Task Failed", error);
+    throw error;
+  }
 };
 
 export const uploadProxyTask = async (payload: any) => {
-  console.log("Executing Upload Task", payload);
-  await new Promise(r => setTimeout(r, 500));
-  return { url: "https://via.placeholder.com/original?text=Uploaded+Asset" };
+  // For file upload, typically the file is uploaded directly to Transloadit/S3 via signed URL
+  // from the client, or via an API route. 
+  // If this task represents "Processing an uploaded file", it might just pass through or
+  // move the file to permanent storage.
+  console.log("Executing Upload Proxy Task", payload);
+  // In Phase 2, we assume the input IS the URL (already uploaded via client/API).
+  // So we just return it or validate it.
+  return { url: payload.url || payload.filename }; // If filename is actually a URL
 };
 
-// This function bridges the API route to the execution engine
+// Re-export triggering logic
 import { runWorkflowEngine } from "@/lib/engine";
 
 export const triggerWorkflow = async (runId: string, inputs: any) => {
-  // In real Trigger.dev, this would send an event.
-  // Here we just call the engine directly (async).
-  runWorkflowEngine(runId, inputs);
+  // In a fully deployed Trigger.dev scenario, we would send an event here:
+  // await client.sendEvent("run.workflow", { runId, inputs });
+  
+  // For now, continuing the pattern of direct async execution (Background Job simulation)
+  // This allows it to run on Vercel Serverless (with timeout limits) or just immediately.
+  // Ideally, this should be offloaded to a background worker.
+  
+  // We'll keep the direct call but ensure it's async and doesn't block the API response.
+  runWorkflowEngine(runId, inputs); 
 };
+

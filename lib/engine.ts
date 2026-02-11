@@ -95,22 +95,44 @@ export async function runWorkflowEngine(runId: string, initialInputs: any) {
           }
 
           // Execute Task
-          let output = {};
+          let output: any = {};
           const startTime = Date.now();
           
           switch (node.type) {
             case 'llm':
-              output = await llmTask({ prompt: nodeInputs.text || nodeInputs.prompt || "Default Prompt" });
+              // Check if we have an image input
+              const imageUrl = nodeInputs.image || nodeInputs.url;
+              const prompt = nodeInputs.text || nodeInputs.prompt || (node.config as any)?.prompt || "Default Prompt";
+              const model = (node.config as any)?.model;
+              
+              if (imageUrl) {
+                 const result = await llmTask({ prompt, imageUrl, model: model || 'gemini-pro-vision' });
+                 output = { text: result };
+              } else {
+                 const result = await llmTask({ prompt, model: model || 'gemini-pro' });
+                 output = { text: result };
+              }
               break;
             case 'crop_image':
-              output = await cropImageTask({ imageUrl: nodeInputs.url });
+              const cropResult = await cropImageTask({ 
+                imageUrl: nodeInputs.url || nodeInputs.image, 
+                width: (node.config as any)?.width,
+                height: (node.config as any)?.height
+              });
+              output = { url: cropResult.url };
               break;
             case 'extract_frame':
-              output = await extractFrameTask({ videoUrl: nodeInputs.url });
+              const frameResult = await extractFrameTask({ 
+                videoUrl: nodeInputs.url || nodeInputs.video,
+                timestamp: (node.config as any)?.timestamp
+              });
+              output = { url: frameResult.url, image: frameResult.url };
               break;
             case 'upload_image':
             case 'upload_video':
-              output = await uploadProxyTask({ filename: "upload" });
+              // In Phase 2, we expect the input to contain the uploaded URL already
+              // or we mock the "processing" of it.
+              output = await uploadProxyTask({ url: nodeInputs.url, filename: nodeInputs.filename });
               break;
             case 'text':
               // Pass through config text
