@@ -37,7 +37,7 @@ export async function POST(req: Request) {
         status: 'PENDING',
         // Initialize node executions
         nodeExecutions: {
-          create: workflow.nodes.map(node => ({
+          create: workflow.nodes.map((node: any) => ({
             nodeId: node.id,
             status: 'PENDING'
           }))

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     // Transaction to update workflow and its structure
     const workflowId = id || uuidv4();
 
-    const workflow = await prisma.$transaction(async (tx) => {
+    const workflow = await prisma.$transaction(async (tx: any) => {
       // 1. Upsert Workflow
       const wf = await tx.workflow.upsert({
         where: { id: workflowId },
