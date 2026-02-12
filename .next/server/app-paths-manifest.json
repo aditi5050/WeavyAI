@@ -1,5 +1,0 @@
-{
-  "/api/workflows/[id]/save/route": "app/api/workflows/[id]/save/route.js",
-  "/api/runs/start/route": "app/api/runs/start/route.js",
-  "/flow/[id]/page": "app/flow/[id]/page.js"
-}
