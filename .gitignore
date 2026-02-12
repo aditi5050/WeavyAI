@@ -3,3 +3,4 @@ package-lock.json
 /app/generated/prisma
 .vercel
 .next/
+.env

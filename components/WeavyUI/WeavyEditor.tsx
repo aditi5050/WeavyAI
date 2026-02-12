@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { MessageSquareText, Image, Video, Sparkles, Crop, Film } from 'lucide-react';
 import ReactFlow, { Background, Controls, MiniMap } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -66,7 +67,6 @@ export default function WeavyEditor({ flowId }: WeavyEditorProps) {
                   {/* Bottom Center Controls */}
                   <div className="react-flow__panel bottom center" style={{ margin: '0px 0px 16px', pointerEvents: 'all' }}>
                      <div className="css-1fypuux" style={{ background: '#1E1E24', padding: '8px', borderRadius: '8px', display: 'flex', gap: '8px' }}>
-                        {/* Placeholder for Pan/Select/Zoom */}
                         <div style={{color:'white'}}>Controls</div>
                      </div>
                   </div>
@@ -75,14 +75,7 @@ export default function WeavyEditor({ flowId }: WeavyEditorProps) {
               </div>
             </div>
 
-            {/* Sidebar (Overlay or Flex) */}
-             {/* Note: In the original HTML, the sidebar seems to be absolute or fixed over the canvas, or flexed. 
-                 The HTML shows `react-flow__panel slide-left-exit left` which suggests it's inside React Flow or layered on top. 
-                 Since I am inside `css-1fpvvd2` which is flex, I'll put it outside or absolute.
-                 The original HTML structure puts the sidebar PANELS inside `react-flow` div? No, let's look closer.
-                 Yes, `react-flow__panel left` contains the sidebar. */}
-            
-            {/* We recreate the Sidebar Structure here, absolutely positioned or using React Flow Panel */}
+            {/* Sidebar (Absolutely Positioned) */}
             <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', display: 'flex', zIndex: 10, pointerEvents: 'none' }}>
                 
                 {/* Narrow Toolbar */}
@@ -94,10 +87,8 @@ export default function WeavyEditor({ flowId }: WeavyEditorProps) {
                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M10.5 18C14.6421 18 18 14.6421 18 10.5C18 6.35786 14.6421 3 10.5 3C6.35786 3 3 6.35786 3 10.5C3 14.6421 6.35786 18 10.5 18Z" stroke="currentColor" strokeWidth="1.125"></path><path d="M15.8035 15.8035L21 21" stroke="currentColor" strokeWidth="1.125"></path></svg>
                         </button>
                         <button onClick={() => { setActiveTab('recent'); setIsSidebarOpen(true); }} style={{ background: 'transparent', border: 'none', color: activeTab === 'recent' ? '#fff' : '#888', cursor: 'pointer' }}>
-                           {/* Recent Icon */}
                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 7.5V12L15.75 14.25" stroke="currentColor" strokeWidth="1.125"></path><path d="M6.75 9.75H3V6" stroke="currentColor" strokeWidth="1.125"></path><path d="M6.3375 18.0004C7.51685 19.1132 8.99798 19.8538 10.5958 20.1297C12.1937 20.4056 13.8374 20.2045 15.3217 19.5515C16.8059 18.8986 18.0648 17.8227 18.9411 16.4584C19.8173 15.0941 20.2721 13.5017 20.2486 11.8804C20.2251 10.2591 19.7244 8.68062 18.8089 7.34226C17.8934 6.0039 16.6039 4.96499 15.1014 4.35533C13.5988 3.74568 11.95 3.59231 10.3608 3.9144C8.77157 4.23648 7.31253 5.01974 6.16594 6.1663C5.0625 7.2838 4.15125 8.33755 3 9.75036" stroke="currentColor" strokeWidth="1.125"></path></svg>
                         </button>
-                         {/* More icons... */}
                     </div>
                 </div>
 
@@ -122,18 +113,51 @@ export default function WeavyEditor({ flowId }: WeavyEditorProps) {
                              
                              {activeTab === 'recent' && (
                                <>
-                                 <div className="css-1ypgrp" draggable style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
-                                    <div className="css-1vvukmh" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#E1E1E3' }}>
-                                         <path d="M12 5.25V18.75" stroke="currentColor" strokeWidth="1.125"></path><path d="M5.25 8.25V5.25H18.75V8.25" stroke="currentColor" strokeWidth="1.125"></path><path d="M9 18.75H15" stroke="currentColor" strokeWidth="1.125"></path>
-                                       </svg>
-                                       <span className="css-aynwex" style={{ fontSize: '13px', color: '#E1E1E3' }}>Prompt</span>
+                                 {/* Node 1: Text Node */}
+                                 <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow', 'textNode'); e.dataTransfer.effectAllowed = 'move'; }} className="css-1ypgrp" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <MessageSquareText className="w-5 h-5" color="#E1E1E3" />
+                                       <span style={{ fontSize: '13px', color: '#E1E1E3' }}>Text Node</span>
                                     </div>
                                  </div>
-                                 <div className="css-1ypgrp" draggable style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
-                                    <div className="css-1vvukmh" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                       <img src="/menu-images/flux100x100.png" width="20" height="20" alt="flux" style={{ borderRadius: '4px' }} />
-                                       <span className="css-aynwex" style={{ fontSize: '13px', color: '#E1E1E3' }}>Flux Pro 1.1</span>
+
+                                 {/* Node 2: Upload Image */}
+                                 <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow', 'uploadImageNode'); e.dataTransfer.effectAllowed = 'move'; }} className="css-1ypgrp" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <Image className="w-5 h-5" color="#E1E1E3" />
+                                       <span style={{ fontSize: '13px', color: '#E1E1E3' }}>Upload Image</span>
+                                    </div>
+                                 </div>
+
+                                 {/* Node 3: Upload Video */}
+                                 <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow', 'uploadVideoNode'); e.dataTransfer.effectAllowed = 'move'; }} className="css-1ypgrp" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <Video className="w-5 h-5" color="#E1E1E3" />
+                                       <span style={{ fontSize: '13px', color: '#E1E1E3' }}>Upload Video</span>
+                                    </div>
+                                 </div>
+
+                                 {/* Node 4: Run Any LLM */}
+                                 <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow', 'llmNode'); e.dataTransfer.effectAllowed = 'move'; }} className="css-1ypgrp" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <Sparkles className="w-5 h-5" color="#E1E1E3" />
+                                       <span style={{ fontSize: '13px', color: '#E1E1E3' }}>Run Any LLM</span>
+                                    </div>
+                                 </div>
+
+                                 {/* Node 5: Crop Image */}
+                                 <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow', 'cropImageNode'); e.dataTransfer.effectAllowed = 'move'; }} className="css-1ypgrp" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <Crop className="w-5 h-5" color="#E1E1E3" />
+                                       <span style={{ fontSize: '13px', color: '#E1E1E3' }}>Crop Image</span>
+                                    </div>
+                                 </div>
+
+                                 {/* Node 6: Extract Frame */}
+                                 <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow', 'extractFrameNode'); e.dataTransfer.effectAllowed = 'move'; }} className="css-1ypgrp" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '8px', cursor: 'grab', background: '#1E1E24' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <Film className="w-5 h-5" color="#E1E1E3" />
+                                       <span style={{ fontSize: '13px', color: '#E1E1E3' }}>Extract Frame</span>
                                     </div>
                                  </div>
                                </>

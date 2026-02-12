@@ -38,7 +38,7 @@ export function LLMNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
-      className={`relative bg-[#1E1E24] rounded-lg shadow-lg border w-80 transition-all duration-200 ${
+      className={`relative bg-[#1A1A23] rounded-lg shadow-lg border w-80 transition-all duration-200 ${
         selected ? "border-[#6F42C1] ring-2 ring-[#6F42C1]/20" : "border-[#2A2A2F]"
       } ${
         isRunning
@@ -148,22 +148,22 @@ export function LLMNode({ id, data, selected }: NodeProps) {
       <Handle
         type="target"
         position={Position.Left}
-        id="system_prompt"
-        style={{ top: 85, background: "#3B82F6" }}
+        id="system"
+        style={{ top: 60, background: "#3B82F6" }}
         className="w-3 h-3 border-2 border-[#1E1E24]"
       />
-      <div className="absolute left-[-60px] top-[78px] text-[10px] text-gray-500 w-[50px] text-right pointer-events-none">
+      <div className="absolute left-[-60px] top-[53px] text-[10px] text-gray-500 w-[50px] text-right pointer-events-none">
         System
       </div>
 
       <Handle
         type="target"
         position={Position.Left}
-        id="user_message"
-        style={{ top: 110, background: "#3B82F6" }}
+        id="user"
+        style={{ top: 98, background: "#3B82F6" }}
         className="w-3 h-3 border-2 border-[#1E1E24]"
       />
-      <div className="absolute left-[-60px] top-[103px] text-[10px] text-gray-500 w-[50px] text-right pointer-events-none">
+      <div className="absolute left-[-60px] top-[91px] text-[10px] text-gray-500 w-[50px] text-right pointer-events-none">
         User
       </div>
 
@@ -171,10 +171,10 @@ export function LLMNode({ id, data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         id="images"
-        style={{ top: 135, background: "#10B981" }}
+        style={{ top: 136, background: "#10B981" }}
         className="w-3 h-3 border-2 border-[#1E1E24]"
       />
-      <div className="absolute left-[-60px] top-[128px] text-[10px] text-gray-500 w-[50px] text-right pointer-events-none">
+      <div className="absolute left-[-60px] top-[129px] text-[10px] text-gray-500 w-[50px] text-right pointer-events-none">
         Images
       </div>
 
