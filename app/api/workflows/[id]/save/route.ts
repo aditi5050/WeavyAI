@@ -7,12 +7,11 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
     const body = await req.json();
 
     // Validate with Zod
@@ -29,16 +28,23 @@ export async function POST(
 
     const { name, definition } = parsed.data;
 
-    // Verify ownership
-    const workflow = await prisma.workflow.findUnique({
+    // Find or create workflow
+    let workflow = await prisma.workflow.findUnique({
       where: { id: params.id },
     });
 
     if (!workflow) {
-      return new NextResponse("Not Found", { status: 404 });
-    }
-
-    if (workflow.userId !== userId) {
+      // Create new workflow if it doesn't exist
+      workflow = await prisma.workflow.create({
+        data: {
+          id: params.id,
+          name: name || 'Untitled Workflow',
+          definition,
+          userId,
+        },
+      });
+    } else if (workflow.userId !== userId) {
+      // Verify ownership if workflow exists
       return new NextResponse("Forbidden", { status: 403 });
     }
 
@@ -59,7 +65,7 @@ export async function POST(
           workflowId: params.id,
           type: node.type,
           label: node.data?.label || node.type,
-          config: node.data?.config || {},
+          config: node.data || {},
           positionX: node.position?.x || 0,
           positionY: node.position?.y || 0,
           id: node.id, // Use the same ID from React Flow
@@ -88,10 +94,6 @@ export async function POST(
         name,
         definition,
         updatedAt: new Date(),
-      },
-      include: {
-        nodes: true,
-        edges: true,
       },
     });
 
