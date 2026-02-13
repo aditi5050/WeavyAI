@@ -11,7 +11,7 @@ export function TextNode({ id, data, selected }: NodeProps) {
   const isRunning = status === 'RUNNING';
 
   const onChange = useCallback((evt: React.ChangeEvent<HTMLTextAreaElement>) => {
-    updateNodeData(id, { text: evt.target.value });
+    updateNodeData(id, { content: evt.target.value });
   }, [id, updateNodeData]);
 
   const onDelete = useCallback(() => {
@@ -41,7 +41,7 @@ export function TextNode({ id, data, selected }: NodeProps) {
           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#6F42C1] min-h-[80px] resize-y bg-white text-black placeholder-gray-400"
           placeholder="Enter text here..."
           style={{ color: '#000000' }}
-          value={data.text || ''}
+          value={data.content || ''}
           onChange={onChange}
         />
       </div>

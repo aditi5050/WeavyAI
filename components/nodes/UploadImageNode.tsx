@@ -21,15 +21,27 @@ export function UploadImageNode({ id, data, selected }: NodeProps) {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const result = await response.json();
-      
-      if (result.url) {
-        updateNodeData(id, { imageUrl: result.url, fileName: file.name });
-      }
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64String = reader.result as string;
+        
+        // Upload file
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        
+        if (result.url) {
+          updateNodeData(id, { 
+            imageUrl: result.url, 
+            imageBase64: base64String,
+            fileName: file.name 
+          });
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Upload failed', error);
     } finally {

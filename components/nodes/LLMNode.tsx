@@ -48,50 +48,76 @@ export function LLMNode({ id, data, selected }: NodeProps) {
     }
   }, [data.output]);
 
-  // Collect inputs from connected nodes
+  // Collect inputs from all connected nodes
   const collectInputs = useCallback(async () => {
     const { nodes, edges } = useWorkflowStore.getState();
     let userPromptFromInput = '';
+    const collectedImages: string[] = [];
+    const collectedMetadata: any = {};
 
-    // Find edges connected to this node
+    // Find all edges connected to this node as target
     for (const edge of edges) {
-      if (edge.target === id && edge.targetHandle === 'user') {
+      if (edge.target === id) {
         // Get source node
-        const sourceNode = nodes.find(n => n.id === edge.source);
-        if (sourceNode) {
-          // Get text from connected Text node
-          if (sourceNode.type === 'text' && sourceNode.data?.text) {
-            userPromptFromInput = String(sourceNode.data.text);
+        const sourceNode = nodes.find(n => n.id === edge.source) as any;
+        if (!sourceNode) continue;
+
+        // Collect text inputs (from Text nodes or other LLM outputs)
+        if (sourceNode.type === 'text' && sourceNode.data?.content) {
+          userPromptFromInput = String(sourceNode.data.content);
+        } else if (sourceNode.type === 'llm' && sourceNode.data?.output) {
+          userPromptFromInput = String(sourceNode.data.output);
+        }
+        
+        // Collect images from various node types
+        if (sourceNode.type === 'image' && sourceNode.data) {
+          // From UploadImageNode - prefer base64 over URL
+          if (sourceNode.data.imageBase64) {
+            collectedImages.push(sourceNode.data.imageBase64);
+          } else if (sourceNode.data.imageUrl) {
+            collectedImages.push(sourceNode.data.imageUrl);
           }
-          // Get response from connected LLM node
-          if (sourceNode.type === 'llm' && sourceNode.data?.output) {
-            userPromptFromInput = String(sourceNode.data.output);
-          }
+        } else if (sourceNode.type === 'crop' && sourceNode.data?.croppedImageUrl) {
+          // From CropImageNode
+          collectedImages.push(sourceNode.data.croppedImageUrl);
+        } else if (sourceNode.type === 'extract' && sourceNode.data?.extractedFrameUrl) {
+          // From ExtractFrameNode
+          collectedImages.push(sourceNode.data.extractedFrameUrl);
+        }
+        
+        // Collect video data from UploadVideoNode
+        if (sourceNode.type === 'video' && sourceNode.data?.videoUrl) {
+          collectedMetadata.videoUrl = sourceNode.data.videoUrl;
+          collectedMetadata.fileName = sourceNode.data.fileName;
         }
       }
     }
 
-    return { userPrompt: userPromptFromInput };
+    return { 
+      userPrompt: userPromptFromInput, 
+      images: collectedImages,
+      metadata: collectedMetadata 
+    };
   }, [id]);
 
   const handleRun = useCallback(async () => {
     updateNodeData(id, { isLoading: true, error: null, output: null });
 
     try {
-      const { userPrompt } = await collectInputs();
+      const { userPrompt, images, metadata } = await collectInputs();
       
-      // Use connected prompt input first, then the prompt field
+      // Use connected prompt input first, then the prompt field (data.prompt not data.userPrompt)
       const finalPrompt = userPrompt || data.prompt || '';
 
       if (!finalPrompt) {
         updateNodeData(id, {
-          error: 'Please connect a input or enter a prompt',
+          error: 'Please enter a prompt or connect a text node',
           isLoading: false,
         });
         return;
       }
 
-      // Call Gemini API
+      // Call Gemini API with collected inputs
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +125,8 @@ export function LLMNode({ id, data, selected }: NodeProps) {
           model: data.model || 'gemini-2.5-flash',
           userPrompt: finalPrompt,
           systemPrompt: data.systemPrompt || undefined,
-          images: data.images || [],
+          images: images && images.length > 0 ? images : undefined,
+          metadata: metadata && Object.keys(metadata).length > 0 ? metadata : undefined,
         }),
       });
 
