@@ -11,6 +11,28 @@ export default function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Trigger animations on page load with slight delay
+    const animationTimer = setTimeout(() => {
+      // Animate the hero heading and text
+      const heroHeading1 = document.querySelector('h1[data-w-id="9b99b1b2-6e89-692f-375b-2be0de8642af"]');
+      const heroHeading2 = document.querySelector('h1[data-w-id="1e764d91-4a52-c6a7-7d2d-9fbb5beba55d"]');
+      const heroParagraph = document.querySelector('p[data-w-id="b036c2bb-55c3-9729-5508-14352d4569e1"]');
+
+      if (heroHeading1) {
+        gsap.to(heroHeading1, { opacity: 1, duration: 0.8, delay: 0.2 });
+      }
+      if (heroHeading2) {
+        gsap.to(heroHeading2, { opacity: 1, duration: 0.8, delay: 0.4 });
+      }
+      if (heroParagraph) {
+        gsap.to(heroParagraph, { opacity: 1, duration: 0.8, delay: 0.6 });
+      }
+    }, 100);
+
+    return () => clearTimeout(animationTimer);
+  }, []);
+
+  useEffect(() => {
     // Wait for LeaderLine and Draggable to be available
     if (typeof window === "undefined") return;
 
