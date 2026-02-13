@@ -4,14 +4,15 @@ const isPublicRoute = createRouteMatcher([
   "/", 
   "/signin(.*)", 
   "/signup(.*)", 
-  "/sso-callback(.*)", // This is crucial for OAuth redirects
+  "/sso-callback(.*)",
   "/assets(.*)",
   "/api/upload(.*)",
 ]);
 
 export default clerkMiddleware((auth, req) => {
+  // Only protect non-public routes
   if (!isPublicRoute(req)) {
-    auth.protect();
+    auth().protect();
   }
 });
 
