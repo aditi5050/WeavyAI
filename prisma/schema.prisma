@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id // Clerk User ID
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflows Workflow[]
+  runs      WorkflowRun[]
+}
+
+model Workflow {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  definition  Json?     // Stores { nodes: [], edges: [] }
+  // nodesData and edgesData removed to fix schema sync issue
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  nodes       WorkflowNode[]
+  edges       WorkflowEdge[]
+  runs        WorkflowRun[]
+}
+
+model WorkflowNode {
+  id          String   @id @default(uuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  type        String   // 'llm', 'crop', 'extract', 'text', etc.
+  label       String
+  config      Json     // Node specific configuration
+  positionX   Float
+  positionY   Float
+  
+  // Relations for execution tracking
+  executions  NodeExecution[]
+  
+  // Adjacency list representation if needed for deeper query, 
+  // but typically 'edges' model is enough for graph reconstruction
+  outgoingEdges WorkflowEdge[] @relation("SourceNode")
+  incomingEdges WorkflowEdge[] @relation("TargetNode")
+}
+
+model WorkflowEdge {
+  id          String       @id @default(uuid())
+  workflowId  String
+  workflow    Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  sourceId    String
+  sourceNode  WorkflowNode @relation("SourceNode", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId    String
+  targetNode  WorkflowNode @relation("TargetNode", fields: [targetId], references: [id], onDelete: Cascade)
+  sourceHandle String?
+  targetHandle String?
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model WorkflowRun {
+  id          String    @id @default(uuid())
+  workflowId  String
+  workflow    Workflow  @relation(fields: [workflowId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  status      RunStatus @default(PENDING)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  duration    Int?      // in milliseconds
+  
+  nodeExecutions NodeExecution[]
+}
+
+enum NodeStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+model NodeExecution {
+  id             String      @id @default(uuid())
+  runId          String
+  run            WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  nodeId         String
+  node           WorkflowNode @relation(fields: [nodeId], references: [id])
+  status         NodeStatus  @default(PENDING)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  duration       Int?        // in milliseconds
+  inputs         Json?
+  outputs        Json?
+  error          String?
+  logs           Json?       // Array of log entries
+}
