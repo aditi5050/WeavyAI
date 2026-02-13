@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useCallback, useRef } from 'react';
-import { ReactFlowProvider, useReactFlow } from 'reactflow';
-import Sidebar from '@/components/Workflow/Sidebar';
-import Canvas from '@/components/Workflow/Canvas';
-import { useWorkflowStore } from '@/stores/workflowStore';
+import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
+import Sidebar from '@/components/Sidebar';
+import Canvas from '@/components/Canvas';
+import { useWorkflowStore } from '@/store/workflowStore';
 
 function WorkflowBuilderInner() {
     const canvasWrapper = useRef<HTMLDivElement>(null);
     const { addNode } = useWorkflowStore();
     const { screenToFlowPosition } = useReactFlow();
 
-    const onDragStart = useCallback((event: React.DragEvent, nodeType: 'text' | 'image' | 'llm' | 'crop' | 'extract' | 'video') => {
+    const onDragStart = useCallback((event: React.DragEvent, nodeType: 'text' | 'image' | 'llm') => {
         event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
     }, []);
@@ -25,7 +25,7 @@ function WorkflowBuilderInner() {
         (event: React.DragEvent) => {
             event.preventDefault();
 
-            const type = event.dataTransfer.getData('application/reactflow') as 'text' | 'image' | 'llm' | 'crop' | 'extract' | 'video';
+            const type = event.dataTransfer.getData('application/reactflow') as 'text' | 'image' | 'llm';
             if (!type) return;
 
             // Use React Flow's screenToFlowPosition for accurate positioning

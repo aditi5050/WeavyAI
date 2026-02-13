@@ -7,6 +7,8 @@ export function ExtractFrameNode({ id, data, selected }: NodeProps) {
   const updateNodeData = useWorkflowEditorStore((state) => state.updateNodeData);
   const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
 
+  if (!data) return null;
+
   const onTimestampChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     updateNodeData(id, { timestamp: evt.target.value });
   }, [id, updateNodeData]);
@@ -39,7 +41,7 @@ export function ExtractFrameNode({ id, data, selected }: NodeProps) {
             placeholder="e.g. 50% or 10" 
             className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" 
             style={{ color: '#000000' }}
-            value={data.timestamp || ''} 
+            value={data?.timestamp ?? ''} 
             onChange={onTimestampChange} 
           />
           <p className="text-[10px] text-gray-700 mt-1">Seconds or Percentage (%)</p>

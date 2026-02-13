@@ -7,6 +7,8 @@ export function CropImageNode({ id, data, selected }: NodeProps) {
   const updateNodeData = useWorkflowEditorStore((state) => state.updateNodeData);
   const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
 
+  if (!data) return null;
+
   const onParamChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     updateNodeData(id, { [evt.target.name]: parseInt(evt.target.value) || 0 });
   }, [id, updateNodeData]);
@@ -35,23 +37,23 @@ export function CropImageNode({ id, data, selected }: NodeProps) {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-xs font-medium text-black">X (%)</label>
-            <input type="number" name="x_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data.x_percent || 0} onChange={onParamChange} />
+            <input type="number" name="x_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data?.x_percent ?? 0} onChange={onParamChange} />
           </div>
           <div>
             <label className="block text-xs font-medium text-black">Y (%)</label>
-            <input type="number" name="y_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data.y_percent || 0} onChange={onParamChange} />
+            <input type="number" name="y_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data?.y_percent ?? 0} onChange={onParamChange} />
           </div>
           <div>
             <label className="block text-xs font-medium text-black">Width (%)</label>
-            <input type="number" name="width_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data.width_percent || 100} onChange={onParamChange} />
+            <input type="number" name="width_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data?.width_percent ?? 100} onChange={onParamChange} />
           </div>
           <div>
             <label className="block text-xs font-medium text-black">Height (%)</label>
-            <input type="number" name="height_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data.height_percent || 100} onChange={onParamChange} />
+            <input type="number" name="height_percent" className="w-full text-xs border border-gray-300 rounded p-1 bg-white text-black placeholder-gray-400" style={{ color: '#000000' }} value={data?.height_percent ?? 100} onChange={onParamChange} />
           </div>
         </div>
 
-        {data.imageUrl && (
+        {data?.imageUrl && (
           <div className="mt-2 text-xs text-gray-500 truncate">
             Input: ...{data.imageUrl.slice(-20)}
           </div>

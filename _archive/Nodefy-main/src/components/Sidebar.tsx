@@ -6,17 +6,19 @@ import {
     Type,
     ImageIcon,
     Sparkles,
+    Save,
+    FileDown,
+    FileUp,
+    Package,
+    Plus,
     Search,
     Grid3X3,
-    ArrowLeft,
-    Crop,
-    Film,
-    Video
+    ArrowLeft
 } from 'lucide-react';
-import { useWorkflowStore } from '@/stores/workflowStore';
+import { useWorkflowStore } from '@/store/workflowStore';
 
 interface SidebarProps {
-    onDragStart: (event: React.DragEvent, nodeType: 'text' | 'image' | 'llm' | 'crop' | 'extract' | 'video') => void;
+    onDragStart: (event: React.DragEvent, nodeType: 'text' | 'image' | 'llm') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
@@ -41,9 +43,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
         { type: 'text' as const, label: 'Text', icon: Type, colSpan: false },
         { type: 'image' as const, label: 'Image', icon: ImageIcon, colSpan: false },
         { type: 'llm' as const, label: 'Run Any LLM', icon: Sparkles, colSpan: true },
-        { type: 'crop' as const, label: 'Crop Image', icon: Crop, colSpan: false },
-        { type: 'extract' as const, label: 'Extract Frame', icon: Film, colSpan: false },
-        { type: 'video' as const, label: 'Upload Video', icon: Video, colSpan: false },
     ];
 
     // Filter nodes based on search query
@@ -104,15 +103,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
                 {/* Logo - Link to Dashboard */}
                 <Link
                     href="/dashboard"
-                    className="h-12 flex items-center justify-center border-b border-[#2a2a2a] hover:bg-[#1a1a1a] transition-colors p-2"
+                    className="h-12 flex items-center justify-center border-b border-[#2a2a2a] hover:bg-[#1a1a1a] transition-colors"
                     title="Back to Dashboard"
                 >
-                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/682350d42a7c97b440a58480_Nav%20left%20item%20-%20DESKTOP.svg"
-                        alt="Weavy Logo"
-                        className="w-full h-full object-contain"
-                    />
+                    <span className="text-white font-bold text-xl">N</span>
                 </Link>
 
                 {/* Icon Buttons */}
@@ -202,6 +196,60 @@ const Sidebar: React.FC<SidebarProps> = ({ onDragStart }) => {
                                     No nodes found for &quot;{searchQuery}&quot;
                                 </div>
                             )}
+                        </div>
+
+                        {/* Tools Section */}
+                        <h3 className="text-[10px] font-medium text-white/70 uppercase tracking-wide mt-5 mb-3">Tools</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={handleExport}
+                                className="flex flex-col items-center justify-center p-3 bg-transparent border border-[#3a3a3a] hover:bg-[#2a2a2a] rounded-lg transition-all group"
+                            >
+                                <FileDown className="w-5 h-5 text-white mb-1 transition-colors" />
+                                <span className="text-[10px] text-white transition-colors">Export</span>
+                            </button>
+
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex flex-col items-center justify-center p-3 bg-transparent border border-[#3a3a3a] hover:bg-[#2a2a2a] rounded-lg transition-all group"
+                            >
+                                <FileUp className="w-5 h-5 text-white mb-1 transition-colors" />
+                                <span className="text-[10px] text-white transition-colors">Import</span>
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={handleImport}
+                                className="hidden"
+                            />
+
+                            <button
+                                onClick={loadSampleWorkflow}
+                                className="col-span-2 flex flex-col items-center justify-center p-3 bg-transparent border border-[#3a3a3a] hover:bg-[#2a2a2a] rounded-lg transition-all group"
+                            >
+                                <Package className="w-5 h-5 text-white mb-1 transition-colors" />
+                                <span className="text-[10px] text-white text-center transition-colors">Sample Workflow</span>
+                            </button>
+                        </div>
+
+                        {/* Actions Section */}
+                        <h3 className="text-[10px] font-medium text-white/70 uppercase tracking-wide mt-5 mb-3">Actions</h3>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={createNewWorkflow}
+                                className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-transparent border border-[#3a3a3a] hover:bg-[#2a2a2a] rounded-lg text-white hover:text-white text-[10px] transition-all"
+                            >
+                                <Plus className="w-3 h-3" />
+                                <span>New</span>
+                            </button>
+                            <button
+                                onClick={saveWorkflow}
+                                className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-transparent border border-[#3a3a3a] hover:bg-[#2a2a2a] rounded-lg text-white hover:text-white text-[10px] transition-all"
+                            >
+                                <Save className="w-3 h-3" />
+                                <span>Save</span>
+                            </button>
                         </div>
                     </div>
                 </div>

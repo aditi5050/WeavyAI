@@ -8,7 +8,7 @@ import {
   applyEdgeChanges,
   NodeChange,
   EdgeChange,
-} from "reactflow";
+} from "@xyflow/react";
 import {
   WorkflowNode,
   TextNodeData,
@@ -41,7 +41,7 @@ interface WorkflowState {
   onConnect: (connection: Connection) => void;
 
   addNode: (
-    type: "text" | "image" | "llm" | "crop" | "extract" | "video",
+    type: "text" | "image" | "llm",
     position: { x: number; y: number }
   ) => void;
   updateNodeData: (
@@ -87,7 +87,7 @@ const createImageNodeData = (): ImageNodeData => ({
 
 const createLLMNodeData = (): LLMNodeData => ({
   label: "LLM",
-  model: "gemini-1.5-flash",
+  model: "gpt-4o",
   systemPrompt: "",
   userPrompt: "",
   response: null,
@@ -95,27 +95,6 @@ const createLLMNodeData = (): LLMNodeData => ({
   isLoading: false,
   error: null,
   imageInputCount: 1,
-});
-
-const createCropNodeData = () => ({
-  label: "Crop Image",
-  x_percent: 0,
-  y_percent: 0,
-  width_percent: 100,
-  height_percent: 100,
-  imageUrl: null,
-});
-
-const createExtractNodeData = () => ({
-  label: "Extract Frame",
-  timestamp: "",
-  videoUrl: null,
-});
-
-const createVideoNodeData = () => ({
-  label: "Upload Video",
-  videoUrl: null,
-  fileName: null,
 });
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -199,7 +178,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   addNode: (type, position) => {
     get().saveHistory();
     const id = generateId();
-    let data: any;
+    let data: TextNodeData | ImageNodeData | LLMNodeData;
 
     switch (type) {
       case "text":
@@ -210,15 +189,6 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         break;
       case "llm":
         data = createLLMNodeData();
-        break;
-      case "crop":
-        data = createCropNodeData();
-        break;
-      case "extract":
-        data = createExtractNodeData();
-        break;
-      case "video":
-        data = createVideoNodeData();
         break;
     }
 
@@ -315,22 +285,40 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   canRedo: () => get().historyIndex < get().history.length - 1,
 
   saveWorkflow: () => {
-    // This function is for localStorage. 
-    // In our new architecture, we save to DB via API in the component.
-    // But we can keep local backup or remove this.
-    // Let's keep it simple for now and just update the store state if needed.
-    
-    // Actually, let's keep the localStorage implementation as a backup or for "offline" mode
     const { workflowId, workflowName, nodes, edges } = get();
-    // Logic moved to component or we can add API call here later.
+    const workflow: Workflow = {
+      id: workflowId,
+      name: workflowName,
+      nodes,
+      edges,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save to localStorage
+    const workflows = JSON.parse(localStorage.getItem("workflows") || "{}");
+    workflows[workflowId] = workflow;
+    localStorage.setItem("workflows", JSON.stringify(workflows));
   },
 
   loadWorkflow: (id) => {
-    // Logic handled in component via API
+    const workflows = JSON.parse(localStorage.getItem("workflows") || "{}");
+    const workflow = workflows[id];
+    if (workflow) {
+      set({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        history: [],
+        historyIndex: -1,
+      });
+    }
   },
 
   getWorkflowList: () => {
-    return [];
+    const workflows = JSON.parse(localStorage.getItem("workflows") || "{}");
+    return Object.values(workflows) as Workflow[];
   },
 
   loadSampleWorkflow: () => {
@@ -363,7 +351,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         position: { x: 450, y: 200 },
         data: {
           label: "Analyze Product",
-          model: "gemini-1.5-flash",
+          model: "gpt-4o",
           systemPrompt:
             "You are a product analyst. Analyze the product image and specifications provided.",
           userPrompt:
@@ -381,7 +369,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         position: { x: 900, y: 50 },
         data: {
           label: "Write Instagram Caption",
-          model: "gemini-1.5-flash",
+          model: "gpt-4o",
           systemPrompt: "Write Instagram caption for the described product.",
           userPrompt:
             "Create an engaging Instagram caption for this product with relevant hashtags.",
@@ -397,7 +385,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         position: { x: 900, y: 320 },
         data: {
           label: "Write SEO Meta Description",
-          model: "gemini-1.5-flash",
+          model: "gpt-4o",
           systemPrompt: "Write SEO meta description for the described product.",
           userPrompt:
             "Write an SEO-optimized meta description (under 160 characters) for this product.",
@@ -413,7 +401,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         position: { x: 900, y: 590 },
         data: {
           label: "Write Amazon Listing",
-          model: "gemini-1.5-flash",
+          model: "gpt-4o",
           systemPrompt: "Write Amazon listing for the following described product.",
           userPrompt:
             "Based on the product analysis, write a compelling Amazon product listing with title, bullet points, and description.",

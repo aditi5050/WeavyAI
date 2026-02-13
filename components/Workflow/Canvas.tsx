@@ -12,19 +12,25 @@ import {
     reconnectEdge,
     Edge,
     Connection,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import { ZoomIn, ZoomOut, Maximize2, Lock, Unlock, Undo2, Redo2 } from 'lucide-react';
 
 import { useWorkflowStore } from '@/stores/workflowStore';
-import TextNode from './nodes/TextNode';
-import ImageNode from './nodes/ImageNode';
-import LLMNode from './nodes/LLMNode';
+import { TextNode } from '@/components/nodes/TextNode';
+import { UploadImageNode } from '@/components/nodes/UploadImageNode';
+import { LLMNode } from '@/components/nodes/LLMNode';
+import { CropImageNode } from '@/components/nodes/CropImageNode';
+import { ExtractFrameNode } from '@/components/nodes/ExtractFrameNode';
+import { UploadVideoNode } from '@/components/nodes/UploadVideoNode';
 
 const nodeTypes = {
     text: TextNode,
-    image: ImageNode,
+    image: UploadImageNode,
     llm: LLMNode,
+    crop: CropImageNode,
+    extract: ExtractFrameNode,
+    video: UploadVideoNode,
 };
 
 interface CanvasProps {
