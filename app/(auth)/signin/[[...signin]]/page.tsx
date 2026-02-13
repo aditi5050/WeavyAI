@@ -128,13 +128,12 @@ export default function Page() {
       flexDirection: 'column', 
       minHeight: '100vh', 
       width: '100%',
-      backgroundColor: 'rgb(230, 233, 242)',
-      backgroundImage: `
-        linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 60%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 1px, transparent 1px)
+      background: `
+        linear-gradient(to right, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        linear-gradient(to bottom, rgb(235, 240, 250) 0%, rgb(255, 255, 255) 60%)
       `,
-      backgroundSize: '100% 100%, 16px 16px, 16px 16px'
+      backgroundSize: '16px 16px, 16px 16px, 100% 100%'
     }}>
       <main style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%' }}>
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -147,7 +146,7 @@ export default function Page() {
 
           {/* Main content area */}
           <div data-testid="signin-page-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-            <div style={{ width: '100%', maxWidth: '360px' }}>
+            <div style={{ width: '100%', maxWidth: '400px' }}>
               <img
                 src="/assets/weavy-sign-in-back.png"
                 alt="Sign in cover"
@@ -157,9 +156,9 @@ export default function Page() {
                   (e.currentTarget as HTMLImageElement).src = '/sign-in-images/bg-net-hero.avif';
                 }}
               />
-              <div style={{ backgroundColor: 'white', padding: '40px 24px 32px 24px', borderRadius: '0 0 8px 8px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: 400, textAlign: 'center', marginBottom: '12px', color: 'rgb(33, 33, 38)', letterSpacing: '-0.5px', wordSpacing: '2px' }}>Welcome to Weavy</h1>
-                <p style={{ fontSize: '10px', color: 'rgb(100, 100, 100)', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5, maxWidth: '200px', marginLeft: 'auto', marginRight: 'auto' }}>
+              <div style={{ backgroundColor: 'white', padding: '32px 24px', borderRadius: '0 0 8px 8px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+                <h1 style={{ fontSize: '32px', fontWeight: 500, textAlign: 'center', marginBottom: '12px', color: 'rgb(33, 33, 38)' }}>Welcome to Weavy</h1>
+                <p style={{ fontSize: '13px', color: 'rgb(100, 100, 100)', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5 }}>
                   By clicking &quot;Log in with Figma, Google, or Microsoft&quot;, you agree to{' '}
                   <a href="https://content.weavy.ai/terms-of-service" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(25, 103, 210)', textDecoration: 'underline' }}>
                     Weavy Terms of Service
@@ -171,12 +170,12 @@ export default function Page() {
                   .
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <button
                     onClick={() => handleOAuthSignIn('figma')}
                     disabled={isLoading}
                     style={{
-                      width: '75%',
+                      width: '100%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -185,9 +184,9 @@ export default function Page() {
                       color: 'white',
                       fontSize: '14px',
                       fontWeight: 500,
-                      padding: '8px 16px',
+                      padding: '12px 16px',
                       border: 'none',
-                      borderRadius: '8px',
+                      borderRadius: '4px',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       opacity: isLoading ? 0.6 : 1,
                     }}
@@ -196,15 +195,17 @@ export default function Page() {
                     <span>Log in with Figma</span>
                   </button>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'rgb(200, 200, 200)' }} />
                     <span style={{ fontSize: '13px', color: 'rgb(120, 120, 120)' }}>or</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'rgb(200, 200, 200)' }} />
                   </div>
 
                   <button
                     onClick={() => handleOAuthSignIn('google')}
                     disabled={isLoading}
                     style={{
-                      width: '75%',
+                      width: '100%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -213,9 +214,9 @@ export default function Page() {
                       color: 'rgb(33, 33, 38)',
                       fontSize: '14px',
                       fontWeight: 500,
-                      padding: '8px 16px',
+                      padding: '12px 16px',
                       border: '1px solid rgb(200, 200, 200)',
-                      borderRadius: '8px',
+                      borderRadius: '4px',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       opacity: isLoading ? 0.6 : 1,
                     }}
@@ -228,7 +229,7 @@ export default function Page() {
                     onClick={() => handleOAuthSignIn('microsoft')}
                     disabled={isLoading}
                     style={{
-                      width: '75%',
+                      width: '100%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -237,9 +238,9 @@ export default function Page() {
                       color: 'rgb(33, 33, 38)',
                       fontSize: '14px',
                       fontWeight: 500,
-                      padding: '8px 16px',
+                      padding: '12px 16px',
                       border: '1px solid rgb(200, 200, 200)',
-                      borderRadius: '8px',
+                      borderRadius: '4px',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       opacity: isLoading ? 0.6 : 1,
                     }}
@@ -256,7 +257,7 @@ export default function Page() {
 
       {/* Footer */}
       <div style={{ padding: '20px', backgroundColor: 'transparent', textAlign: 'right' }}>
-        <span style={{ fontSize: '10px', color: 'rgb(120, 120, 120)', fontWeight: 600 }}>© 2025 Weavy. All rights reserved.</span>
+        <span style={{ fontSize: '10px', color: 'rgb(120, 120, 120)' }}>© 2025 Weavy. All rights reserved.</span>
       </div>
     </div>
   );
