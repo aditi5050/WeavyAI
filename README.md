@@ -72,8 +72,8 @@ Make sure you have installed:
 
  **Clone the repository**
    ```bash
-   git clone  https://github.com/yourusername/nodefy-workflow-builder.git](https://github.com/aditi5050/WeavyAI.git)
-   cd WeavyAI
+   git clone  [([https://github.com/aditi5050/WeavyAI.git)](https://github.com/aditi5050/NamahAI.git)](https://github.com/aditi5050/NamahAI.git)
+   cd NamahAI
    ```
 
  **Install dependencies**
