@@ -9,14 +9,12 @@ const isPublicRoute = createRouteMatcher([
   "/api/upload(.*)",
 ]);
 
-export default clerkMiddleware((auth, req) => {
-
+export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    return auth().redirectToSignIn(); 
+    await (await auth()).protect();
   }
-
 });
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)"],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
