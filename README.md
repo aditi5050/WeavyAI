@@ -4,7 +4,7 @@
 
 **WaavyAI** is a powerful, node-based AI workflow platform that enables users to create, manage, and execute complex AI pipelines using a visual drag-and-drop interface. Built as a modern web application with Next.js 15, it provides an intuitive way to chain AI models together for content generation, image analysis, and more.
 
-<img width="1460" height="792" alt="Screenshot 2026-02-15 at 1 49 20 AM" src="https://github.com/user-attachments/assets/1f3a04eb-115c-49dd-b601-f280c0b6e6ea" />
+<img width="1460" height="792" alt="Screenshot 2026-02-15 at 1 49 20 AM" src="https://github.com/user-attachments/assets/3d300690-fc64-4fd7-ab2b-dea1d7c95a69" />
 
 ---
 
@@ -14,6 +14,7 @@
 - **Visual Workflow Builder** - Drag-and-drop nodes to create AI pipelines
 - **Multiple Node Types**:
   - 📝 **Text Input** - Enter prompts and descriptions
+
   - 🖼️ **Image Input** - Upload images for analysis
   - 🤖 **LLM Node** - Connect to Gemini models for processing
 - **Real-time Connections** - Connect nodes with animated edges
