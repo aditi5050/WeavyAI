@@ -244,35 +244,45 @@ export const workflowRunJob = task({
 
               // Execute node based on type
               switch (node.type) {
-                case "llm": {
-                  // Support both camelCase (from node data) and snake_case (from edges)
-                  const system = nodeInputs.system || nodeInputs.systemPrompt || nodeInputs.system_prompt;
-                  const user = nodeInputs.user || nodeInputs.userPrompt || nodeInputs.user_message || nodeInputs.prompt;
-                  const images = nodeInputs.images || [];
-                  const model =
-                    (node.config as any)?.model || "gemini-2.5-flash";
-
-                  let fullPrompt = "";
-                  if (system) fullPrompt += `System: ${system}\n\n`;
-                  if (user) fullPrompt += `User: ${user}`;
-                  if (!fullPrompt) fullPrompt = "Explain this.";
-
-                  let result;
-                  if (images && images.length > 0) {
-                    // Use triggerAndWait to get the actual result
-                    result = await llmTask.triggerAndWait({
-                      prompt: fullPrompt,
-                      imageUrls: images,
-                      model,
-                    });
-                  } else {
-                    // Use triggerAndWait to get the actual result
-                    result = await llmTask.triggerAndWait({
-                      prompt: fullPrompt,
-                      model,
-                    });
-                  }
-
+                                  case "llm": {
+                                    // Support both camelCase (from node data) and snake_case (from edges)
+                                    const system = nodeInputs.system || nodeInputs.systemPrompt || nodeInputs.system_prompt;
+                                    const userInput = nodeInputs.user || nodeInputs.user_message; // Input from connected node
+                                    const nodePrompt = nodeInputs.prompt; // Prompt from the node's own textarea
+                                    
+                                    // Combine connected user input and the node's own prompt
+                                    let combinedUserPrompt = "";
+                                    if (userInput) {
+                                        combinedUserPrompt += userInput + "\n\n";
+                                    }
+                                    if (nodePrompt) {
+                                        combinedUserPrompt += nodePrompt;
+                                    }
+                                    
+                                    const images = nodeInputs.images || [];
+                                    const model =
+                                      (node.config as any)?.model || "gemini-2.5-flash";
+                
+                                    let fullPrompt = "";
+                                    if (system) fullPrompt += `System: ${system}\n\n`;
+                                    if (combinedUserPrompt) fullPrompt += `User: ${combinedUserPrompt}`;
+                                    if (!fullPrompt) fullPrompt = "Explain this.";
+                
+                                    let result;
+                                    if (images && images.length > 0) {
+                                      // Use triggerAndWait to get the actual result
+                                      result = await llmTask.triggerAndWait({
+                                        prompt: fullPrompt,
+                                        imageUrls: images,
+                                        model,
+                                      });
+                                    } else {
+                                      // Use triggerAndWait to get the actual result
+                                      result = await llmTask.triggerAndWait({
+                                        prompt: fullPrompt,
+                                        model,
+                                      });
+                                    }
                   // Unwrap result if it's a task wrapper object
                   let actualResult = result;
                   if (result && typeof result === 'object' && 'output' in result && typeof (result as any).output === 'string') {

@@ -14,32 +14,54 @@ const MAX_IMAGE_SIZE = 500000; // ~500KB base64 = reasonable size for Gemini
 
 // Compress/resize base64 image if too large (server-side using basic string truncation won't work)
 // For proper compression, we'd need sharp or similar. For now, we'll just warn and skip huge images.
-async function processImageForGemini(imageBase64: string): Promise<string | null> {
-    // Remove data:image/...;base64, prefix if present
-    const base64Match = imageBase64.match(/^data:image\/(\w+);base64,/);
+async function processImageForGemini(input: string): Promise<{ base64Data: string; mimeType: string; } | null> {
+    // Handle public URLs
+    if (input.startsWith('http')) {
+        try {
+            const response = await fetch(input);
+            if (!response.ok) {
+                console.warn(`[Gemini] Failed to fetch image from URL: ${input}`);
+                return null;
+            }
+            const mimeType = response.headers.get('content-type') || 'image/jpeg';
+            const buffer = await response.arrayBuffer();
+            const base64Data = Buffer.from(buffer).toString('base64');
+
+            if (base64Data.length > MAX_IMAGE_SIZE) {
+                console.warn(`[Gemini] Fetched image is too large (${Math.round(base64Data.length / 1024)}KB), skipping.`);
+                return null;
+            }
+            return { base64Data, mimeType };
+        } catch (error) {
+            console.error(`[Gemini] Error fetching image URL: ${input}`, error);
+            return null;
+        }
+    }
+
+    // Handle base64 strings
+    const base64Match = input.match(/^data:image\/(\w+);base64,/);
     let mimeType = 'image/jpeg';
-    let base64Data = imageBase64;
+    let base64Data = input;
     
     if (base64Match) {
         mimeType = `image/${base64Match[1]}`;
-        base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+        base64Data = input.replace(/^data:image\/\w+;base64,/, "");
     }
     
     // Check size
     if (base64Data.length > MAX_IMAGE_SIZE) {
         console.warn(`[Gemini] Image too large (${Math.round(base64Data.length / 1024)}KB), skipping. Consider using smaller images.`);
-        // Return a placeholder message instead of the image
         return null;
     }
     
-    return base64Data;
+    return { base64Data, mimeType };
 }
 
 export interface GenerateContentOptions {
     model: string;
     prompt: string;
     systemInstruction?: string;
-    images?: string[]; // base64 strings
+    images?: string[]; // base64 strings or URLs
 }
 
 export async function generateContent({ model: modelName, prompt, systemInstruction, images = [] }: GenerateContentOptions) {
@@ -54,17 +76,14 @@ export async function generateContent({ model: modelName, prompt, systemInstruct
         const parts: Part[] = [{ text: prompt }];
         let skippedImages = 0;
 
-        // Add images if present (with size check)
-        for (const imageBase64 of images) {
-            const processedData = await processImageForGemini(imageBase64);
-            if (processedData) {
-                // Detect mime type from original
-                const mimeMatch = imageBase64.match(/^data:image\/(\w+);base64,/);
-                const mimeType = mimeMatch ? `image/${mimeMatch[1]}` : 'image/jpeg';
+        // Add images if present
+        for (const imageInput of images) {
+            const processedImage = await processImageForGemini(imageInput);
+            if (processedImage) {
                 parts.push({
                     inlineData: {
-                        data: processedData,
-                        mimeType: mimeType,
+                        data: processedImage.base64Data,
+                        mimeType: processedImage.mimeType,
                     }
                 });
             } else {
@@ -74,7 +93,7 @@ export async function generateContent({ model: modelName, prompt, systemInstruct
         
         // If all images were skipped, add a note to the prompt
         if (skippedImages > 0 && skippedImages === images.length) {
-            parts[0] = { text: prompt + "\n\n[Note: Image was too large to process. Please use a smaller image.]" };
+            parts[0] = { text: prompt + "\n\n[Note: Image(s) were too large, invalid, or could not be fetched.]" };
         }
 
         const result = await model.generateContent(parts);
