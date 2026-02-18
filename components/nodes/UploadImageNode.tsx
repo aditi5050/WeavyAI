@@ -60,8 +60,19 @@ export function UploadImageNode({ id, data, selected }: NodeProps) {
 
     setUploading(true);
 
+    // 1. Immediate Local Preview
     try {
-      // 1. Get upload signature from server
+      const localUrl = URL.createObjectURL(file);
+      updateData({ 
+        imageUrl: localUrl, 
+        fileName: file.name 
+      });
+    } catch (e) {
+      console.error("Error creating object URL", e);
+    }
+
+    try {
+      // 2. Get upload signature from server
       const signatureResponse = await fetch('/api/upload/signature', {
         method: 'POST',
       });
@@ -72,7 +83,7 @@ export function UploadImageNode({ id, data, selected }: NodeProps) {
 
       const { url, params, signature } = await signatureResponse.json();
 
-      // 2. Upload directly to Transloadit
+      // 3. Upload directly to Transloadit
       const formData = new FormData();
       formData.append('params', params);
       formData.append('signature', signature);
@@ -91,18 +102,22 @@ export function UploadImageNode({ id, data, selected }: NodeProps) {
            fileUrl = result.results[':original'][0].ssl_url;
         } else {
            console.warn('Transloadit results not immediately available', result);
+           // Fallback to uploads array if available
+           if (result.uploads && result.uploads.length > 0) {
+              fileUrl = result.uploads[0].ssl_url;
+           }
         }
 
         if (fileUrl) {
-          // Read file as data URL for local preview (compressed)
+          // Read file as data URL for base64 storage (compressed)
           const reader = new FileReader();
           reader.onload = async () => {
               const base64String = reader.result as string;
               const compressedBase64 = await compressImage(base64String);
               
               updateData({ 
-                imageUrl: fileUrl, // Cloud URL
-                imageBase64: compressedBase64, // Local compressed preview
+                imageUrl: fileUrl, // Update to Cloud URL
+                imageBase64: compressedBase64, // Local compressed preview/storage
                 fileName: file.name 
               });
           };
