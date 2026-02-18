@@ -1,20 +1,13 @@
-import { TriggerConfig } from "@trigger.dev/sdk";
+import { defineConfig } from "@trigger.dev/sdk/v3";
 
-const config: TriggerConfig = {
-  // Your Production project ID (must match Trigger dashboard)
+export default defineConfig({
+  // Your Project ID
   project: process.env.TRIGGER_PROJECT_ID!,
 
-  // Node runtime (recommended for Next.js + Prisma)
-  runtime: "node",
-
-  // Logging level
-  logLevel: "info",
-
-  // Maximum task execution time (seconds)
+  // ⚠️ REQUIRED: The default timeout for all tasks (in seconds).
+  // 3600s = 1 hour. You can override this on individual tasks if needed.
   maxDuration: 3600,
 
-  // Directory where your tasks are located
+  // Tell Trigger.dev where your tasks are located
   dirs: ["./trigger"],
-};
-
-export default config;
+});
