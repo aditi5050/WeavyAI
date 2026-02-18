@@ -1,23 +1,45 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
 import { Film, Trash2, Loader2, ArrowRight } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/workflowStore';
+import { useWorkflowRuntimeStore } from '@/stores/workflowRuntimeStore';
 
 export function ExtractFrameNode({ id, data, selected }: NodeProps) {
   const { getNodes, getEdges } = useReactFlow();
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const deleteNode = useWorkflowStore((state) => state.deleteNode);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const saveToDatabase = useWorkflowStore((state) => state.saveToDatabase);
+  const workflowId = useWorkflowStore((state) => state.workflowId);
+
+  const { startSingleNodeRun, nodeStatuses, nodeOutputs } = useWorkflowRuntimeStore();
 
   // Helper to update this node's data using Zustand store
   const updateData = useCallback((newData: Record<string, any>) => {
     updateNodeData(id, newData);
   }, [id, updateNodeData]);
- // a little commit to trigger update of commits
+
   // Helper to delete this node from React Flow
   const deleteThisNode = useCallback(() => {
     deleteNode(id);
   }, [id, deleteNode]);
+
+  // Watch for execution completion
+  useEffect(() => {
+    if (nodeStatuses[id] === 'COMPLETED' && nodeOutputs[id]) {
+      const output = nodeOutputs[id];
+      const newUrl = output.output || output.url || output.image;
+      if (newUrl) {
+        updateData({ 
+            extractedFrameUrl: newUrl, 
+            isLoading: false,
+            error: null
+        });
+      }
+    } else if (nodeStatuses[id] === 'FAILED') {
+        const errorMsg = nodeOutputs[id]?.error || 'Extract frame failed on server';
+        updateData({ isLoading: false, error: errorMsg });
+    }
+  }, [nodeStatuses, nodeOutputs, id, updateData]);
 
   const onTimestampChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     updateData({ timestamp: evt.target.value });
@@ -47,106 +69,32 @@ export function ExtractFrameNode({ id, data, selected }: NodeProps) {
     return null;
   }, [id, getNodes, getEdges]);
 
-  // Max image dimension to avoid huge base64 strings
-  const MAX_IMAGE_DIMENSION = 1024;
-
-  // Extract frame from video at specified timestamp
-  const extractFrameFromVideo = useCallback((videoUrl: string, timestampInput: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      // Only set crossOrigin for http/https URLs, not for data: URLs
-      if (!videoUrl.startsWith('data:')) {
-        video.crossOrigin = 'anonymous';
-      }
-      video.preload = 'auto';
-      video.muted = true;
-      
-      video.onloadedmetadata = () => {
-        // Parse timestamp - can be percentage (e.g. "50%") or seconds (e.g. "10")
-        let targetTime: number;
-        const timestampStr = timestampInput.trim();
-        
-        if (timestampStr.endsWith('%')) {
-          const percent = parseFloat(timestampStr.slice(0, -1));
-          targetTime = (percent / 100) * video.duration;
-        } else {
-          targetTime = parseFloat(timestampStr) || 0;
-        }
-        
-        // Clamp to valid range
-        targetTime = Math.max(0, Math.min(targetTime, video.duration));
-        
-        video.currentTime = targetTime;
-      };
-      
-      video.onseeked = () => {
-        // Scale down if video is too large
-        let width = video.videoWidth || 640;
-        let height = video.videoHeight || 480;
-        
-        if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
-          const scale = MAX_IMAGE_DIMENSION / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-        
-        ctx.drawImage(video, 0, 0, width, height);
-        
-        // Use JPEG with quality 0.8 to reduce size
-        const frameDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(frameDataUrl);
-      };
-      
-      video.onerror = () => {
-        reject(new Error('Failed to load video'));
-      };
-      
-      video.src = videoUrl;
-      video.load();
-    });
-  }, []);
-
   const handleExtract = useCallback(async () => {
     if (!data) return;
-    updateData({ isLoading: true, error: null, extractedFrameUrl: null });
-
-    try {
-      const videoUrl = getInputVideo();
-      
-      if (!videoUrl) {
+    
+    const videoUrl = getInputVideo();
+    if (!videoUrl) {
         updateData({
           error: 'No video connected. Connect a video node.',
           isLoading: false,
         });
         return;
-      }
-
-      const timestamp = data.timestamp || '0';
-
-      // Perform the extraction
-      const extractedFrameUrl = await extractFrameFromVideo(videoUrl, timestamp);
-
-      updateData({
-        extractedFrameUrl,
-        isLoading: false,
-      });
-    } catch (error) {
-      updateData({
-        error: error instanceof Error ? error.message : 'Failed to extract frame',
-        isLoading: false,
-      });
     }
-  }, [data, updateData, getInputVideo, extractFrameFromVideo]);
+
+    updateData({ isLoading: true, error: null, extractedFrameUrl: null });
+
+    const timestamp = data.timestamp || '0';
+    updateData({ timestamp }); 
+
+    // Save workflow to DB first so backend has latest config
+    await saveToDatabase();
+
+    // Trigger server-side execution via Trigger.dev
+    await startSingleNodeRun(workflowId, id, {
+        video: videoUrl
+    });
+
+  }, [data, updateData, getInputVideo, saveToDatabase, startSingleNodeRun, workflowId, id]);
 
   if (!data) return null;
 
@@ -209,7 +157,7 @@ export function ExtractFrameNode({ id, data, selected }: NodeProps) {
             onClick={handleExtract}
             disabled={data.isLoading}
             className="flex items-center gap-2 px-3 py-2 bg-[#6366F1] hover:bg-[#5558E3] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-all"
-            title="Extract frame at specified timestamp"
+            title="Extract frame on server"
           >
             {data.isLoading ? (
               <Loader2 className="w-3 h-3 animate-spin" />

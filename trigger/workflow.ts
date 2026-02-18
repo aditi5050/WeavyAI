@@ -242,8 +242,8 @@ export const workflowRunJob = task({
                 switch (node.type) {
                   case "llm": {
                     // Support both camelCase (from node data) and snake_case (from edges)
-                    const system = nodeInputs.systemPrompt || nodeInputs.system_prompt;
-                    const user = nodeInputs.userPrompt || nodeInputs.user_message || nodeInputs.prompt;
+                    const system = nodeInputs.system || nodeInputs.systemPrompt || nodeInputs.system_prompt;
+                    const user = nodeInputs.user || nodeInputs.userPrompt || nodeInputs.user_message || nodeInputs.prompt;
                     const images = nodeInputs.images || [];
                     const model =
                       (node.config as any)?.model || "gemini-2.5-flash";
@@ -253,28 +253,32 @@ export const workflowRunJob = task({
                     if (user) fullPrompt += `User: ${user}`;
                     if (!fullPrompt) fullPrompt = "Explain this.";
 
+                    let result;
                     if (images && images.length > 0) {
                       // Use triggerAndWait to get the actual result
-                      const result = await llmTask.triggerAndWait({
+                      result = await llmTask.triggerAndWait({
                         prompt: fullPrompt,
                         imageUrls: images,
                         model,
                       });
-                      output = {
-                        output: result ?? "No output",
-                        text: result ?? "No output",
-                      };
                     } else {
                       // Use triggerAndWait to get the actual result
-                      const result = await llmTask.triggerAndWait({
+                      result = await llmTask.triggerAndWait({
                         prompt: fullPrompt,
                         model,
                       });
-                      output = {
-                        output: result ?? "No output",
-                        text: result ?? "No output",
-                      };
                     }
+
+                    // Unwrap result if it's a task wrapper object
+                    let actualResult = result;
+                    if (result && typeof result === 'object' && 'output' in result && typeof (result as any).output === 'string') {
+                         actualResult = (result as any).output;
+                    }
+
+                    output = {
+                      output: actualResult ?? "No output",
+                      text: actualResult ?? "No output",
+                    };
                     break;
                   }
 

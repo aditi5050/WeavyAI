@@ -33,6 +33,13 @@ export function LLMNode({ id, data, selected }: NodeProps) {
     updateNodeData(id, newData);
   }, [id, updateNodeData]);
 
+  // Watch for execution completion to reset loading state
+  React.useEffect(() => {
+    if (status === "COMPLETED" || status === "FAILED") {
+      updateData({ isLoading: false });
+    }
+  }, [status, updateData]);
+
   // Helper to delete this node from React Flow
   const deleteThisNode = useCallback(() => {
     deleteNode(id);
@@ -87,11 +94,27 @@ export function LLMNode({ id, data, selected }: NodeProps) {
         
         // Collect images from various node types
         if (sourceNode.type === 'image' && sourceNode.data) {
-          // From UploadImageNode - prefer base64 over URL
+          // From UploadImageNode - prefer base64 over URL, but handle blob URLs
           if (sourceNode.data.imageBase64) {
             collectedImages.push(sourceNode.data.imageBase64);
           } else if (sourceNode.data.imageUrl) {
-            collectedImages.push(sourceNode.data.imageUrl);
+            const url = sourceNode.data.imageUrl;
+            if (url.startsWith('blob:')) {
+                try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const base64 = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(blob);
+                    });
+                    collectedImages.push(base64);
+                } catch (e) {
+                    console.error("Failed to convert blob to base64", e);
+                }
+            } else {
+                collectedImages.push(url);
+            }
           }
         } else if (sourceNode.type === 'crop' && sourceNode.data?.croppedImageUrl) {
           // From CropImageNode

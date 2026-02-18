@@ -1,12 +1,17 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
 import { Crop, Trash2, Loader2, ArrowRight } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/workflowStore';
+import { useWorkflowRuntimeStore } from '@/stores/workflowRuntimeStore';
 
 export function CropImageNode({ id, data, selected }: NodeProps) {
   const { getNodes, getEdges } = useReactFlow();
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const deleteNode = useWorkflowStore((state) => state.deleteNode);
+  const saveToDatabase = useWorkflowStore((state) => state.saveToDatabase);
+  const workflowId = useWorkflowStore((state) => state.workflowId);
+  
+  const { startSingleNodeRun, nodeStatuses, nodeOutputs } = useWorkflowRuntimeStore();
 
   // Helper to update this node's data using Zustand store
   const updateData = useCallback((newData: Record<string, any>) => {
@@ -17,6 +22,25 @@ export function CropImageNode({ id, data, selected }: NodeProps) {
   const deleteThisNode = useCallback(() => {
     deleteNode(id);
   }, [id, deleteNode]);
+
+  // Watch for execution completion
+  useEffect(() => {
+    if (nodeStatuses[id] === 'COMPLETED' && nodeOutputs[id]) {
+      const output = nodeOutputs[id];
+      const newUrl = output.output || output.url || output.image;
+      if (newUrl) {
+        updateData({ 
+            croppedImageUrl: newUrl, 
+            isLoading: false,
+            error: null
+        });
+      }
+    } else if (nodeStatuses[id] === 'FAILED') {
+        // Check for specific error message in outputs if available
+        const errorMsg = nodeOutputs[id]?.error || 'Crop failed on server';
+        updateData({ isLoading: false, error: errorMsg });
+    }
+  }, [nodeStatuses, nodeOutputs, id, updateData]);
 
   const onParamChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     updateData({ [evt.target.name]: parseInt(evt.target.value) || 0 });
@@ -52,118 +76,52 @@ export function CropImageNode({ id, data, selected }: NodeProps) {
     return null;
   }, [id, getNodes, getEdges]);
 
-  // Crop image using canvas based on percentage values
-  const cropImageWithCanvas = useCallback((imageSrc: string, xPercent: number, yPercent: number, widthPercent: number, heightPercent: number): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-        
-        // Calculate crop dimensions in pixels from percentages
-        const cropX = (xPercent / 100) * img.width;
-        const cropY = (yPercent / 100) * img.height;
-        let cropWidth = (widthPercent / 100) * img.width;
-        let cropHeight = (heightPercent / 100) * img.height;
-        
-        // Scale down if cropped image is too large (max 1024px)
-        const MAX_DIMENSION = 1024;
-        if (cropWidth > MAX_DIMENSION || cropHeight > MAX_DIMENSION) {
-          const scale = MAX_DIMENSION / Math.max(cropWidth, cropHeight);
-          cropWidth = Math.round(cropWidth * scale);
-          cropHeight = Math.round(cropHeight * scale);
-        }
-        
-        // Set canvas size to the crop dimensions
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
-        
-        // Draw the cropped region onto the canvas
-        ctx.drawImage(
-          img,
-          cropX, cropY,           // Source x, y
-          (widthPercent / 100) * img.width, (heightPercent / 100) * img.height,  // Source width, height
-          0, 0,                   // Destination x, y
-          cropWidth, cropHeight   // Destination width, height
-        );
-        
-        // Convert to base64 data URL with JPEG compression
-        const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        resolve(croppedDataUrl);
-      };
-      
-      img.onerror = () => {
-        reject(new Error('Failed to load image'));
-      };
-      
-      img.src = imageSrc;
-    });
-  }, []);
-
   const handleRun = useCallback(async () => {
     if (!data) return;
-    updateData({ isLoading: true, error: null, croppedImageUrl: null });
-
-    try {
-      const inputImage = getInputImage();
-      
-      if (!inputImage) {
+    
+    const inputImage = getInputImage();
+    if (!inputImage) {
         updateData({
           error: 'No input image connected. Connect an image node.',
           isLoading: false,
         });
         return;
-      }
-
-      // Parse as numbers and clamp to valid ranges
-      let xPercent = Number(data.x_percent) || 0;
-      let yPercent = Number(data.y_percent) || 0;
-      let widthPercent = Number(data.width_percent) || 100;
-      let heightPercent = Number(data.height_percent) || 100;
-
-      // Clamp starting positions to 0-100
-      xPercent = Math.max(0, Math.min(100, xPercent));
-      yPercent = Math.max(0, Math.min(100, yPercent));
-
-      // Ensure width and height are positive
-      widthPercent = Math.max(1, widthPercent);
-      heightPercent = Math.max(1, heightPercent);
-
-      // Clamp width/height so crop region doesn't exceed bounds
-      if (xPercent + widthPercent > 100) {
-        widthPercent = 100 - xPercent;
-      }
-      if (yPercent + heightPercent > 100) {
-        heightPercent = 100 - yPercent;
-      }
-
-      // Perform the crop
-      const croppedImageUrl = await cropImageWithCanvas(
-        inputImage,
-        xPercent,
-        yPercent,
-        widthPercent,
-        heightPercent
-      );
-
-      updateData({
-        croppedImageUrl,
-        isLoading: false,
-      });
-    } catch (error) {
-      updateData({
-        error: error instanceof Error ? error.message : 'Failed to crop image',
-        isLoading: false,
-      });
     }
-  }, [data, updateData, getInputImage, cropImageWithCanvas]);
+
+    updateData({ isLoading: true, error: null, croppedImageUrl: null });
+
+    // Parse as numbers and clamp to valid ranges
+    let xPercent = Number(data.x_percent) || 0;
+    let yPercent = Number(data.y_percent) || 0;
+    let widthPercent = Number(data.width_percent) || 100;
+    let heightPercent = Number(data.height_percent) || 100;
+
+    // Clamp values
+    xPercent = Math.max(0, Math.min(100, xPercent));
+    yPercent = Math.max(0, Math.min(100, yPercent));
+    widthPercent = Math.max(1, widthPercent);
+    heightPercent = Math.max(1, heightPercent);
+
+    if (xPercent + widthPercent > 100) widthPercent = 100 - xPercent;
+    if (yPercent + heightPercent > 100) heightPercent = 100 - yPercent;
+
+    // Save config
+    updateData({
+        x_percent: xPercent,
+        y_percent: yPercent,
+        width_percent: widthPercent,
+        height_percent: heightPercent
+    });
+
+    // Save workflow to DB first so backend has latest config
+    await saveToDatabase();
+
+    // Trigger server-side execution via Trigger.dev
+    await startSingleNodeRun(workflowId, id, {
+        image: inputImage, // Pass input image explicitly to override any stale upstream data if needed
+    });
+
+  }, [data, updateData, getInputImage, saveToDatabase, startSingleNodeRun, workflowId, id]);
 
   if (!data) return null;
 
@@ -231,7 +189,7 @@ export function CropImageNode({ id, data, selected }: NodeProps) {
             onClick={handleRun}
             disabled={data.isLoading}
             className="flex items-center gap-2 px-3 py-2 bg-[#FBBF24] hover:bg-[#F59E0B] disabled:opacity-50 disabled:cursor-not-allowed text-black text-xs font-medium rounded-lg transition-all"
-            title="Crop image with current settings"
+            title="Crop image on server"
           >
             {data.isLoading ? (
               <Loader2 className="w-3 h-3 animate-spin" />

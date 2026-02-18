@@ -36,6 +36,33 @@ export async function GET(
 
     const customReadable = new ReadableStream({
       async start(controller) {
+        let isStreamClosed = false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let interval: any = null;
+
+        const closeStream = () => {
+            if (!isStreamClosed) {
+                isStreamClosed = true;
+                if (interval) clearInterval(interval);
+                try {
+                    controller.close();
+                } catch (e) {
+                    // Ignore errors if controller is already closed
+                    console.error("Error closing controller", e);
+                }
+            }
+        };
+
+        const safeEnqueue = (data: string) => {
+            if (isStreamClosed) return;
+            try {
+                controller.enqueue(encoder.encode(data));
+            } catch (e) {
+                console.error("Error enqueuing to stream", e);
+                closeStream();
+            }
+        };
+
         // Send initial state
         const initialRun = await prisma.workflowRun.findUnique({
           where: { id: runId },
@@ -54,22 +81,29 @@ export async function GET(
           },
         });
 
+        // Track state of each node to detect changes reliably
+        const nodeStateMap = new Map<string, { status: string; completedAt: number | null }>();
+
         if (initialRun) {
-          controller.enqueue(
-            encoder.encode(
+          initialRun.nodeExecutions.forEach((exec) => {
+            nodeStateMap.set(exec.nodeId, {
+              status: exec.status,
+              completedAt: exec.completedAt ? new Date(exec.completedAt).getTime() : null,
+            });
+          });
+
+          safeEnqueue(
               `data: ${JSON.stringify({
                 type: "init",
                 run: initialRun,
               })}\n\n`
-            )
           );
         }
 
-        // Poll for updates every 500ms (more efficient than 1s)
-        let lastFetchedAt = new Date();
-        let isCompleted = false;
+        // Poll for updates every 500ms
+        interval = setInterval(async () => {
+          if (isStreamClosed) return;
 
-        const interval = setInterval(async () => {
           try {
             const updatedRun = await prisma.workflowRun.findUnique({
               where: { id: runId },
@@ -89,25 +123,35 @@ export async function GET(
             });
 
             if (!updatedRun) {
-              clearInterval(interval);
-              controller.enqueue(
-                encoder.encode(
+              safeEnqueue(
                   `data: ${JSON.stringify({
                     type: "error",
                     error: "Run not found",
                   })}\n\n`
-                )
               );
-              controller.close();
+              closeStream();
               return;
             }
 
             // Send updates for changed nodes
             const updates = updatedRun.nodeExecutions
               .filter((exec) => {
-                // Consider a node updated if it's not pending anymore or has been completed
-                const wasModified = exec.completedAt && exec.completedAt > lastFetchedAt;
-                return wasModified || (exec.status !== "PENDING" && !exec.completedAt);
+                const prevState = nodeStateMap.get(exec.nodeId);
+                const currentCompletedAt = exec.completedAt ? new Date(exec.completedAt).getTime() : null;
+                
+                const hasChanged = 
+                    !prevState || 
+                    prevState.status !== exec.status ||
+                    prevState.completedAt !== currentCompletedAt;
+
+                if (hasChanged) {
+                    nodeStateMap.set(exec.nodeId, {
+                        status: exec.status,
+                        completedAt: currentCompletedAt
+                    });
+                    return true;
+                }
+                return false;
               })
               .map((exec: any) => ({
                 nodeId: exec.nodeId,
@@ -119,13 +163,11 @@ export async function GET(
               }));
 
             if (updates.length > 0) {
-              controller.enqueue(
-                encoder.encode(
+              safeEnqueue(
                   `data: ${JSON.stringify({
                     type: "nodeUpdates",
                     updates,
                   })}\n\n`
-                )
               );
             }
 
@@ -135,30 +177,27 @@ export async function GET(
               updatedRun.status === "FAILED" ||
               updatedRun.status === "CANCELLED"
             ) {
-              controller.enqueue(
-                encoder.encode(
+              safeEnqueue(
                   `data: ${JSON.stringify({
                     type: "runComplete",
                     run: updatedRun,
                   })}\n\n`
-                )
               );
-              isCompleted = true;
+              
+              // Wait slightly before closing to ensure client receives the message
+              setTimeout(() => closeStream(), 1000);
+              // Clear interval immediately to prevent further polling
               clearInterval(interval);
-              setTimeout(() => controller.close(), 1000);
             }
-
-            lastFetchedAt = new Date();
           } catch (error) {
             console.error("[SSE_ERROR]", error);
-            clearInterval(interval);
+            closeStream();
           }
         }, 500);
 
         // Cleanup on client disconnect
         req.signal.addEventListener("abort", () => {
-          clearInterval(interval);
-          controller.close();
+          closeStream();
         });
       },
     });

@@ -258,9 +258,9 @@ function NodeExecutionItem({ nodeExec, onCopy }: { nodeExec: any; onCopy: (text:
     const output = nodeExec.outputs;
     
     if (typeof output === 'string') return output;
-    if (output.text) return output.text;
-    if (output.output) return output.output;
-    if (output.url) return output.url;
+    if (output.text && typeof output.text === 'string') return output.text;
+    if (output.output && typeof output.output === 'string') return output.output;
+    if (output.url && typeof output.url === 'string') return output.url;
     return JSON.stringify(output);
   };
 
