@@ -177,7 +177,7 @@ export default function Hero() {
             style={{ opacity: 0 }}
             className="heading_h1-hero"
           >
-            NAMAH
+            Namah
           </h1>
         </div>
         <div
