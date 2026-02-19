@@ -33,7 +33,6 @@ export default function Hero() {
   }, []);
 
   useEffect(() => {
-    // Wait for LeaderLine and Draggable to be available
     if (typeof window === "undefined") return;
 
     gsap.registerPlugin(Draggable);
@@ -178,7 +177,7 @@ export default function Hero() {
             style={{ opacity: 0 }}
             className="heading_h1-hero"
           >
-            Weavy
+            NAMAH
           </h1>
         </div>
         <div
